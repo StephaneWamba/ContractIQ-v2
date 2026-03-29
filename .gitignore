@@ -1,13 +1,53 @@
+# Python
 __pycache__/
 *.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
 *.egg-info/
+dist/
+build/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.log
+
+# Environments
 .env
 .env.*
 !.env.example
-dist/
-build/
 .venv/
 venv/
-*.db
+env/
+
+# Node
 node_modules/
+npm-debug.log*
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Runtime artifacts
+uploads/
+chroma_db/
+*.db
+*.sqlite3
+
+# GCP credentials
+service-account*.json
+*-credentials.json
+*.pem
+*.key
+*.p12
+
+# Claude cache
 .claude/cache/
