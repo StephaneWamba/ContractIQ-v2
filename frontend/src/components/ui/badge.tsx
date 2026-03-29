@@ -30,26 +30,16 @@ const criticalPulseStyle: React.CSSProperties = {
 
 export function RiskBadge({ level, className }: RiskBadgeProps) {
   return (
-    <>
-      {level === "critical" && (
-        <style>{`
-          @keyframes badge-pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-          }
-        `}</style>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium border",
+        riskStyles[level],
+        className
       )}
-      <span
-        className={cn(
-          "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium border",
-          riskStyles[level],
-          className
-        )}
-        style={level === "critical" ? criticalPulseStyle : undefined}
-      >
-        {riskLabels[level]}
-      </span>
-    </>
+      style={level === "critical" ? criticalPulseStyle : undefined}
+    >
+      {riskLabels[level]}
+    </span>
   )
 }
 
@@ -74,16 +64,7 @@ const statusConfig: Record<
 export function StatusBadge({ status, className }: StatusBadgeProps) {
   const { label, dotColor, pulse } = statusConfig[status]
   return (
-    <>
-      {pulse && (
-        <style>{`
-          @keyframes dot-pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-          }
-        `}</style>
-      )}
-      <span
+    <span
         className={cn(
           "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium border",
           "border-[var(--border-default)] text-[var(--text-secondary)] bg-[var(--surface-elevated)]",
@@ -99,7 +80,6 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
         />
         {label}
       </span>
-    </>
   )
 }
 
