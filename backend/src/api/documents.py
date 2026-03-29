@@ -178,11 +178,6 @@ async def delete_document(
     if doc.gcs_path:
         await gcs_service.delete_file(doc.gcs_path)
 
-    if doc.anthropic_file_id:
-        from src.services.files_api import FilesAPIService
-        files_api = FilesAPIService()
-        await files_api.delete_file(doc.anthropic_file_id)
-
     vector_store = VectorStore()
     await vector_store.delete_document_chunks(db, document_id)
 

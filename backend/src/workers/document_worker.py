@@ -8,12 +8,9 @@ from sqlalchemy import select
 from src.core.config import get_settings
 from src.core.database import AsyncSessionLocal
 from src.models.document import Document, DocumentStatus, ContractType
-from src.models.clause import Clause, ClauseType, RiskLevel
 from src.services.gcs_service import GCSService
-from src.services.files_api import FilesAPIService
 from src.services.document_processor import DocumentProcessor
 from src.services.vector_store import VectorStore
-from src.agents.clause_extraction_agent import ClauseExtractionAgent
 
 logger = logging.getLogger(__name__)
 
@@ -59,10 +56,8 @@ async def process_document(ctx: dict, document_id: str) -> None:
     settings = get_settings()
 
     gcs_service = GCSService()
-    files_api = FilesAPIService()
     processor = DocumentProcessor()
     vector_store = VectorStore()
-    extractor = ClauseExtractionAgent()
 
     async with AsyncSessionLocal() as db:
         # Load document
@@ -87,10 +82,6 @@ async def process_document(ctx: dict, document_id: str) -> None:
             processed = processor.process_pdf(tmp_path)
             document.page_count = processed.page_count
             document.truncated = processed.truncated
-
-            # Step 3: Upload to Anthropic Files API
-            file_id = await files_api.upload_pdf(tmp_path)
-            document.anthropic_file_id = file_id
 
             # Step 4: Detect contract type (heuristic, override only if GENERIC)
             if document.contract_type == ContractType.GENERIC:
@@ -121,70 +112,11 @@ async def process_document(ctx: dict, document_id: str) -> None:
             document.chunk_count = chunk_count
             await db.commit()
 
-            # Step 7: Extract clauses
-            extraction = await extractor.extract(
-                full_text=processed.full_text,
-                contract_type=document.contract_type.value,
-                party_perspective=document.party_perspective.value,
-                document_id=document_id,
-            )
-
-            # Override contract_type if LLM detected a different one (only if currently GENERIC)
-            if document.contract_type == ContractType.GENERIC:
-                detected_type = extraction.get("contract_type_detected", "").lower().replace(" ", "_")
-                for ct in ContractType:
-                    if ct.value == detected_type:
-                        document.contract_type = ct
-                        break
-
-            # Persist clauses
-            for clause_data in extraction.get("clauses", []):
-                clause_type_str = clause_data.get("clause_type", "OTHER").upper()
-                try:
-                    clause_type = ClauseType(clause_type_str)
-                except ValueError:
-                    clause_type = ClauseType.OTHER
-
-                risk_level_str = clause_data.get("risk_level", "INFO").upper()
-                try:
-                    risk_level = RiskLevel(risk_level_str)
-                except ValueError:
-                    risk_level = RiskLevel.INFO
-
-                clause = Clause(
-                    document_id=document_id,
-                    clause_type=clause_type,
-                    original_text=clause_data.get("text", ""),
-                    page_number=clause_data.get("page_number"),
-                    risk_level=risk_level,
-                    risk_reasoning=clause_data.get("risk_reasoning"),
-                    jurisdiction_note=clause_data.get("jurisdiction_note"),
-                    parties=clause_data.get("parties", []),
-                )
-                db.add(clause)
-
-            # Step 8: Missing clause checklist
-            extracted_types = []
-            for clause_data in extraction.get("clauses", []):
-                ct_str = clause_data.get("clause_type", "OTHER").upper()
-                try:
-                    ClauseType(ct_str)
-                    extracted_types.append(ct_str)
-                except ValueError:
-                    pass  # coerced to OTHER, don't count as extracted
-            missing = get_missing_clauses(document.contract_type, extracted_types)
-            if missing:
-                document.missing_clauses = missing
-
-            # Step 9: Set status = READY
+            # Step 7: Set status = READY (clause extraction removed — pending agent rewrite)
             document.status = DocumentStatus.READY
-            document.summary = extraction.get("summary")
             await db.commit()
 
-            logger.info(
-                f"Document {document_id} processed: {chunk_count} chunks, "
-                f"{len(extraction.get('clauses', []))} clauses"
-            )
+            logger.info(f"Document {document_id} processed: {chunk_count} chunks")
 
         except Exception as e:
             logger.error(f"Document {document_id} processing failed: {e}", exc_info=True)
