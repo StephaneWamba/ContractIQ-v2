@@ -1,6 +1,7 @@
 import uuid
 import tempfile
 import os
+from typing import List
 from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, Form, status
 from fastapi.responses import RedirectResponse
@@ -186,6 +187,85 @@ async def delete_document(
                     resource_type="document", resource_id=document_id,
                     ip_address=request.client.host if request.client else None)
     await db.commit()
+
+
+@router.post("/batch", status_code=status.HTTP_201_CREATED)
+@limiter.limit("5/hour")
+async def upload_documents_batch(
+    request: Request,
+    workspace_id: str = Form(...),
+    party_perspective: str = Form(default="unknown"),
+    files: List[UploadFile] = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Upload multiple PDFs at once. Each is enqueued as a separate ARQ job."""
+    if len(files) > 20:
+        raise HTTPException(status_code=400, detail="Maximum 20 files per batch")
+
+    ws_result = await db.execute(
+        select(Workspace).where(Workspace.id == workspace_id, Workspace.owner_id == current_user.id)
+    )
+    if not ws_result.scalar_one_or_none():
+        raise HTTPException(status_code=403, detail="Workspace not found or access denied")
+
+    try:
+        perspective = PartyPerspective(party_perspective)
+    except ValueError:
+        perspective = PartyPerspective.UNKNOWN
+
+    settings = get_settings()
+    redis_settings = RedisSettings.from_dsn(settings.redis_url)
+    redis = await create_pool(redis_settings)
+
+    results = []
+    for file in files:
+        file_bytes = await file.read()
+
+        if len(file_bytes) > MAX_PDF_SIZE:
+            results.append({"filename": file.filename, "error": "File too large"})
+            continue
+
+        if not _validate_pdf_magic(file_bytes):
+            results.append({"filename": file.filename, "error": "Not a valid PDF"})
+            continue
+
+        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+            tmp.write(file_bytes)
+            tmp_path = tmp.name
+
+        try:
+            doc_id = str(uuid.uuid4())
+            gcs_path = f"documents/{workspace_id}/{doc_id}/{file.filename}"
+            gcs_service = GCSService()
+            await gcs_service.upload_file(tmp_path, gcs_path)
+
+            document = Document(
+                id=doc_id,
+                workspace_id=workspace_id,
+                filename=file.filename,
+                original_filename=file.filename,
+                file_size=len(file_bytes),
+                gcs_path=gcs_path,
+                party_perspective=perspective,
+                status=DocumentStatus.PENDING,
+            )
+            db.add(document)
+            await db.flush()
+
+            job = await redis.enqueue_job("process_document", doc_id)
+            document.arq_job_id = job.job_id if job else None
+            await db.commit()
+
+            results.append({"id": doc_id, "filename": file.filename, "status": "pending"})
+        finally:
+            os.unlink(tmp_path)
+
+    await redis.close()
+    return {
+        "uploaded": len([r for r in results if "id" in r]),
+        "results": results,
+    }
 
 
 async def _get_owned_document(document_id: str, user_id: str, db: AsyncSession) -> Document:
