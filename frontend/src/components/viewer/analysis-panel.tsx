@@ -276,21 +276,21 @@ export function AnalysisPanel({
                 <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "12px" }}>
                   Ask questions about this contract
                 </p>
-                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                   {SUGGESTIONS.map((s) => (
                     <button
                       key={s}
                       onClick={() => sendMessage(s)}
                       style={{
-                        textAlign: "left",
-                        padding: "8px 12px",
-                        borderRadius: "8px",
-                        border: "1px solid var(--border-subtle)",
+                        padding: "6px 12px",
+                        borderRadius: "9999px",
+                        border: "1px solid var(--border-default)",
                         background: "transparent",
                         cursor: "pointer",
                         fontSize: "12px",
                         color: "var(--text-secondary)",
                         transition: "border-color 0.15s, color 0.15s",
+                        whiteSpace: "nowrap",
                       }}
                     >
                       {s}
