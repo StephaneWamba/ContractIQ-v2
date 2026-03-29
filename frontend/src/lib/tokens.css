@@ -1,0 +1,25 @@
+:root {
+  --bg-base:        #0C0C0E;
+  --bg-elevated:    #111114;
+  --bg-overlay:     #18181C;
+  --surface-base:     #111114;
+  --surface-elevated: #18181C;
+  --surface-overlay:  #1F1F24;
+  --border-subtle:  rgba(255,255,255,0.06);
+  --border-default: rgba(255,255,255,0.10);
+  --border-strong:  rgba(255,255,255,0.18);
+  --text-primary:   #F2F2F2;
+  --text-secondary: #A0A0A8;
+  --text-muted:     #5A5A65;
+  --accent-gold:      #C8A96E;
+  --accent-gold-dim:  rgba(200, 169, 110, 0.12);
+  --accent-gold-ring: rgba(200, 169, 110, 0.30);
+  --semantic-error:   #E05252;
+  --semantic-warning: #E08C30;
+  --semantic-success: #4CAF80;
+  --semantic-info:    #5B8DEF;
+  --risk-critical: #E05252;
+  --risk-high:     #E08C30;
+  --risk-medium:   #C8A96E;
+  --risk-low:      #4CAF80;
+}
