@@ -53,11 +53,11 @@ class Clause(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     document_id: Mapped[str] = mapped_column(String, ForeignKey("documents.id", ondelete="CASCADE"), nullable=False, index=True)
-    clause_type: Mapped[ClauseType] = mapped_column(SAEnum(ClauseType), nullable=False, index=True)
+    clause_type: Mapped[ClauseType] = mapped_column(SAEnum(ClauseType, native_enum=False), nullable=False, index=True)
     title: Mapped[str | None] = mapped_column(String, nullable=True)
     original_text: Mapped[str] = mapped_column(Text, nullable=False)
     summary: Mapped[str | None] = mapped_column(Text, nullable=True)
-    risk_level: Mapped[RiskLevel] = mapped_column(SAEnum(RiskLevel), default=RiskLevel.INFO, index=True)
+    risk_level: Mapped[RiskLevel] = mapped_column(SAEnum(RiskLevel, native_enum=False), default=RiskLevel.INFO, index=True)
     risk_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     risk_reasoning: Mapped[str | None] = mapped_column(Text, nullable=True)
     page_number: Mapped[int | None] = mapped_column(Integer, nullable=True)

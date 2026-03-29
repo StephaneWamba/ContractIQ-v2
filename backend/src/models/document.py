@@ -42,9 +42,9 @@ class Document(Base):
     original_filename: Mapped[str] = mapped_column(String, nullable=False)
     file_size: Mapped[int | None] = mapped_column(Integer, nullable=True)
     page_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    status: Mapped[DocumentStatus] = mapped_column(SAEnum(DocumentStatus), default=DocumentStatus.PENDING, index=True)
-    contract_type: Mapped[ContractType] = mapped_column(SAEnum(ContractType), default=ContractType.GENERIC)
-    party_perspective: Mapped[PartyPerspective] = mapped_column(SAEnum(PartyPerspective), default=PartyPerspective.UNKNOWN)
+    status: Mapped[DocumentStatus] = mapped_column(SAEnum(DocumentStatus, native_enum=False), default=DocumentStatus.PENDING, index=True)
+    contract_type: Mapped[ContractType] = mapped_column(SAEnum(ContractType, native_enum=False), default=ContractType.GENERIC)
+    party_perspective: Mapped[PartyPerspective] = mapped_column(SAEnum(PartyPerspective, native_enum=False), default=PartyPerspective.UNKNOWN)
     # Storage
     gcs_path: Mapped[str | None] = mapped_column(String, nullable=True)
     anthropic_file_id: Mapped[str | None] = mapped_column(String, nullable=True)
