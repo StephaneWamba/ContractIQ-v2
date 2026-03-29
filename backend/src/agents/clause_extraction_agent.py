@@ -86,7 +86,7 @@ Write a brief executive summary (3-5 sentences) of the contract's key commercial
             output_config={
                 "format": {
                     "type": "json_schema",
-                    "json_schema": CLAUSE_EXTRACTION_SCHEMA,
+                    "schema": CLAUSE_EXTRACTION_SCHEMA,
                 }
             }
         )
