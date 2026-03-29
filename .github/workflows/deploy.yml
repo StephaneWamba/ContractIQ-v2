@@ -63,8 +63,10 @@ jobs:
             --cpu 2 \
             --concurrency 80 \
             --timeout 300 \
+            --vpc-connector projects/${{ env.PROJECT_ID }}/locations/${{ env.REGION }}/connectors/contractiq-v2-connector \
+            --vpc-egress private-ranges-only \
             --set-secrets="SECRET_KEY=contractiq-secret-key:latest,DATABASE_URL=database-url:latest,REDIS_URL=redis-url:latest,ANTHROPIC_API_KEY=anthropic-api-key:latest,VOYAGE_API_KEY=voyage-api-key:latest" \
-            --set-env-vars="ENVIRONMENT=production,GCS_BUCKET_NAME=contractiq-v2-documents,GCP_PROJECT_ID=${{ env.PROJECT_ID }},ALLOWED_ORIGINS=[\"https://contractiq.app\"]"
+            --set-env-vars="ENVIRONMENT=production,GCS_BUCKET_NAME=contractiq-v2-documents,GCP_PROJECT_ID=${{ env.PROJECT_ID }},ALLOWED_ORIGINS=https://contractiq.app"
 
       - name: Deploy Worker to Cloud Run
         run: |

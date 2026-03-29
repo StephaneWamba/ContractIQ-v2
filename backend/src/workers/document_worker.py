@@ -200,7 +200,7 @@ async def process_document(ctx: dict, document_id: str) -> None:
 
 class WorkerSettings:
     functions = [process_document]
-    redis_settings = RedisSettings.from_dsn(os.environ["REDIS_URL"])
+    redis_settings = RedisSettings.from_dsn(os.getenv("REDIS_URL", "redis://localhost:6379"))
 
     @staticmethod
     async def on_startup(ctx: dict) -> None:

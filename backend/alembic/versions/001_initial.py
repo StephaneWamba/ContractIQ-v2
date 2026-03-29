@@ -87,13 +87,11 @@ def upgrade() -> None:
     )
     op.create_index('ix_document_chunks_document_id', 'document_chunks', ['document_id'])
     op.create_index('ix_document_chunks_workspace_id', 'document_chunks', ['workspace_id'])
-    # IVFFlat index for cosine similarity search (voyage-law-2 = 1024 dims)
-    # NOTE: IVFFlat requires trained centroids. After loading initial data (500+ rows),
-    # run: REINDEX INDEX ix_document_chunks_embedding
-    # to rebuild with proper centroid training for accurate similarity search.
+    # HNSW index — works on empty tables (unlike IVFFlat which requires training data).
+    # m=16, ef_construction=64 are good defaults for voyage-law-2 1024-dim vectors.
     op.execute(
         "CREATE INDEX ix_document_chunks_embedding ON document_chunks "
-        "USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100)"
+        "USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 64)"
     )
 
     # clauses
