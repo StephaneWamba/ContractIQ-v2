@@ -15,6 +15,6 @@ RUN pip install --no-cache-dir -e .
 RUN mkdir -p /home/agent/.claude && chown -R agent:agent /home/agent/.claude
 
 USER agent
-ENV HOME=/home/agent PYTHONUNBUFFERED=1 PORT=8000
-EXPOSE 8000
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+ENV HOME=/home/agent PYTHONUNBUFFERED=1
+EXPOSE 8080
+CMD ["sh", "-c", "uvicorn src.main:app --host 0.0.0.0 --port ${PORT:-8080}"]
