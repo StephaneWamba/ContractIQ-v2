@@ -82,7 +82,7 @@ jobs:
             --cpu 2 \
             --concurrency 1 \
             --timeout 600 \
-            --cpu-always-allocated \
+            --no-cpu-throttling \
             --vpc-connector projects/${{ env.PROJECT_ID }}/locations/${{ env.REGION }}/connectors/contractiq-v2-connector \
             --vpc-egress private-ranges-only \
             --set-secrets="SECRET_KEY=contractiq-secret-key:latest,DATABASE_URL=database-url:latest,REDIS_URL=redis-url:latest,ANTHROPIC_API_KEY=anthropic-api-key:latest,VOYAGE_API_KEY=voyage-api-key:latest" \
