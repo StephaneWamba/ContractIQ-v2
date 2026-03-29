@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     # GCS
     gcs_bucket_name: str
     gcp_project_id: str = ""
+    gcs_bucket_eu: str = ""        # EU bucket name — leave empty if not using EU region yet
+    gcs_kms_key_us: str = ""       # KMS key resource name for US bucket CMEK (optional)
+    gcs_kms_key_eu: str = ""       # KMS key resource name for EU bucket CMEK (optional)
 
     # CORS — stored as raw string, parsed at access time to avoid pydantic-settings JSON auto-decode
     allowed_origins_raw: str = "http://localhost:3000"
