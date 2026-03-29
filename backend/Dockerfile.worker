@@ -16,4 +16,4 @@ RUN mkdir -p /home/agent/.claude && chown -R agent:agent /home/agent/.claude
 USER agent
 ENV HOME=/home/agent PYTHONUNBUFFERED=1
 
-CMD ["python", "-m", "arq", "src.workers.document_worker.WorkerSettings"]
+CMD ["python", "worker_entrypoint.py"]
