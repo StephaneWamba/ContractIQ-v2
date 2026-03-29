@@ -108,11 +108,7 @@ async def process_document(ctx: dict, document_id: str) -> None:
                 chunks=sorted_chunks,
             )
 
-            # Step 6: Update chunk_count AFTER successful embedding (null = not yet indexed = crash detection)
-            document.chunk_count = chunk_count
-            await db.commit()
-
-            # Step 7: Set status = READY (clause extraction removed — pending agent rewrite)
+            # Step 6: Set status = READY
             document.status = DocumentStatus.READY
             await db.commit()
 
@@ -122,7 +118,6 @@ async def process_document(ctx: dict, document_id: str) -> None:
             logger.error(f"Document {document_id} processing failed: {e}", exc_info=True)
             if document:
                 document.status = DocumentStatus.FAILED
-                document.chunk_count = 0  # visible failure signal
                 document.error_message = str(e)[:500]
                 await db.commit()
         finally:

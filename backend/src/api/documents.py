@@ -141,7 +141,6 @@ async def list_documents(
             "contract_type": d.contract_type.value if d.contract_type else None,
             "party_perspective": d.party_perspective.value if d.party_perspective else None,
             "page_count": d.page_count,
-            "chunk_count": d.chunk_count,
             "created_at": d.created_at.isoformat() if d.created_at else None,
         }
         for d in docs
