@@ -71,6 +71,12 @@ async def update_clause(
                     value = RiskLevel(value.upper())
                 except ValueError:
                     raise HTTPException(status_code=400, detail=f"Invalid risk_level: {value}")
+            if key == "clause_type":
+                from src.models.clause import ClauseType
+                try:
+                    value = ClauseType(value.upper())
+                except ValueError:
+                    raise HTTPException(status_code=400, detail=f"Invalid clause_type: {value}")
             setattr(clause, key, value)
 
     await db.commit()

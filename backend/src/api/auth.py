@@ -52,7 +52,6 @@ async def register(request: Request, body: RegisterRequest, db: AsyncSession = D
     await db.commit()
 
     token = create_access_token(user.id)
-    await log_action(db, user.id, AuditAction.LOGIN, ip_address=request.client.host if request.client else None)
     await db.commit()
     return TokenResponse(access_token=token)
 

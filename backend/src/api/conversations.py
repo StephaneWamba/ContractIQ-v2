@@ -83,7 +83,8 @@ async def review(
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
 
-    if doc.status.value != "ready":
+    from src.models.document import DocumentStatus
+    if doc.status != DocumentStatus.READY:
         raise HTTPException(status_code=400, detail="Document not yet processed")
 
     # Get clauses
