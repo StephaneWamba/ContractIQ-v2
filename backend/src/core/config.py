@@ -1,5 +1,4 @@
 import json
-from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
 
@@ -32,21 +31,17 @@ class Settings(BaseSettings):
     gcs_bucket_name: str
     gcp_project_id: str = ""
 
-    # CORS — accepts comma-separated string or JSON array
-    allowed_origins: list[str] = ["http://localhost:3000"]
+    # CORS — stored as raw string, parsed at access time to avoid pydantic-settings JSON auto-decode
+    allowed_origins_raw: str = "http://localhost:3000"
 
-    @field_validator("allowed_origins", mode="before")
-    @classmethod
-    def parse_allowed_origins(cls, v: str | list) -> list[str]:
-        if isinstance(v, list):
-            return v
-        if isinstance(v, str):
-            try:
-                parsed = json.loads(v)
-                return parsed if isinstance(parsed, list) else [parsed]
-            except (json.JSONDecodeError, ValueError):
-                return [o.strip() for o in v.split(",") if o.strip()]
-        return v
+    @property
+    def allowed_origins(self) -> list[str]:
+        v = self.allowed_origins_raw
+        try:
+            parsed = json.loads(v)
+            return parsed if isinstance(parsed, list) else [parsed]
+        except (json.JSONDecodeError, ValueError):
+            return [o.strip() for o in v.split(",") if o.strip()]
 
     def model_post_init(self, __context) -> None:
         if self.environment == "production":
