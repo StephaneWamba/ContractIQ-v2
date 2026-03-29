@@ -11,6 +11,7 @@ from src.core.audit import log_action
 from src.models.user import User
 from src.models.workspace import Workspace
 from src.models.audit_log import AuditAction
+from src.services.playbook_service import seed_workspace_playbooks
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -50,6 +51,7 @@ async def register(request: Request, body: RegisterRequest, db: AsyncSession = D
     )
     db.add(workspace)
     await db.commit()
+    await seed_workspace_playbooks(workspace.id)
 
     token = create_access_token(user.id)
     await db.commit()

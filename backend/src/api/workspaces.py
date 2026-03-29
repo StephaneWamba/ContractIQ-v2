@@ -5,6 +5,7 @@ from src.core.database import get_db
 from src.core.auth import get_current_user
 from src.models.user import User
 from src.models.workspace import Workspace
+from src.services.playbook_service import seed_workspace_playbooks
 
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
 
