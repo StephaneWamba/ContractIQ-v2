@@ -154,11 +154,7 @@ export default function RegisterPage() {
           }}
           autoComplete="email"
           disabled={loading}
-          error={
-            emailError
-              ? undefined // rendered manually below for the special link case
-              : undefined
-          }
+          error={emailError ? " " : undefined}
         />
         {emailError && (
           <p style={{ fontSize: "12px", color: "var(--semantic-error)", marginTop: "6px" }}>
