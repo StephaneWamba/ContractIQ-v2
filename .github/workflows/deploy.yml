@@ -5,9 +5,10 @@ on:
     branches: [main]
 
 env:
-  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  PROJECT_ID: upperside-congress-2026
   REGION: europe-west1
   REGISTRY: europe-west1-docker.pkg.dev
+  REPO: contractiq-v2
 
 jobs:
   deploy:
@@ -34,39 +35,53 @@ jobs:
         working-directory: backend
         run: |
           docker build \
-            -t ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/contractiq/api:${{ github.sha }} \
-            -t ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/contractiq/api:latest .
-          docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/contractiq/api:${{ github.sha }}
-          docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/contractiq/api:latest
+            -t ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPO }}/api:${{ github.sha }} \
+            -t ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPO }}/api:latest .
+          docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPO }}/api:${{ github.sha }}
+          docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPO }}/api:latest
 
       - name: Build and push worker image
         working-directory: backend
         run: |
           docker build -f Dockerfile.worker \
-            -t ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/contractiq/worker:${{ github.sha }} \
-            -t ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/contractiq/worker:latest .
-          docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/contractiq/worker:${{ github.sha }}
-          docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/contractiq/worker:latest
+            -t ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPO }}/worker:${{ github.sha }} \
+            -t ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPO }}/worker:latest .
+          docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPO }}/worker:${{ github.sha }}
+          docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPO }}/worker:latest
 
       - name: Deploy API to Cloud Run
         run: |
           gcloud run deploy contractiq-v2-api \
-            --image ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/contractiq/api:${{ github.sha }} \
+            --image ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPO }}/api:${{ github.sha }} \
             --region ${{ env.REGION }} \
             --platform managed \
             --allow-unauthenticated \
+            --service-account contractiq-v2-api@${{ env.PROJECT_ID }}.iam.gserviceaccount.com \
             --min-instances 1 \
+            --max-instances 10 \
             --memory 1Gi \
-            --cpu 2
+            --cpu 2 \
+            --concurrency 80 \
+            --timeout 300 \
+            --set-secrets="SECRET_KEY=contractiq-secret-key:latest,DATABASE_URL=database-url:latest,REDIS_URL=redis-url:latest,ANTHROPIC_API_KEY=anthropic-api-key:latest,VOYAGE_API_KEY=voyage-api-key:latest" \
+            --set-env-vars="ENVIRONMENT=production,GCS_BUCKET_NAME=contractiq-v2-documents,GCP_PROJECT_ID=${{ env.PROJECT_ID }},ALLOWED_ORIGINS=[\"https://contractiq.app\"]"
 
       - name: Deploy Worker to Cloud Run
         run: |
           gcloud run deploy contractiq-v2-worker \
-            --image ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/contractiq/worker:${{ github.sha }} \
+            --image ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPO }}/worker:${{ github.sha }} \
             --region ${{ env.REGION }} \
             --platform managed \
             --no-allow-unauthenticated \
+            --service-account contractiq-v2-worker@${{ env.PROJECT_ID }}.iam.gserviceaccount.com \
             --min-instances 1 \
+            --max-instances 3 \
             --memory 2Gi \
             --cpu 2 \
-            --cpu-always-allocated
+            --concurrency 1 \
+            --timeout 600 \
+            --cpu-always-allocated \
+            --vpc-connector projects/${{ env.PROJECT_ID }}/locations/${{ env.REGION }}/connectors/contractiq-v2-connector \
+            --vpc-egress private-ranges-only \
+            --set-secrets="SECRET_KEY=contractiq-secret-key:latest,DATABASE_URL=database-url:latest,REDIS_URL=redis-url:latest,ANTHROPIC_API_KEY=anthropic-api-key:latest,VOYAGE_API_KEY=voyage-api-key:latest" \
+            --set-env-vars="ENVIRONMENT=production,GCS_BUCKET_NAME=contractiq-v2-documents,GCP_PROJECT_ID=${{ env.PROJECT_ID }}"
