@@ -95,9 +95,24 @@ class DocumentProcessor:
                 chunk_index += 1
 
         full_text = "\n".join(full_text_parts)
-        truncated = len(full_text) > self.MAX_CHARS
-        if truncated:
-            full_text = full_text[:self.MAX_CHARS]
+
+        # Truncate chunks to match full_text budget
+        char_budget = self.MAX_CHARS
+        running = 0
+        kept_chunks = []
+        truncated = False
+        for chunk in chunks:
+            if running + len(chunk.text) > char_budget:
+                truncated = True
+                break
+            running += len(chunk.text)
+            kept_chunks.append(chunk)
+        chunks = kept_chunks
+
+        if len(full_text) > self.MAX_CHARS:
+            truncated = True
+            cut = full_text.rfind("\n", 0, self.MAX_CHARS)
+            full_text = full_text[:cut] if cut > 0 else full_text[:self.MAX_CHARS]
 
         return ProcessedDocument(
             full_text=full_text,

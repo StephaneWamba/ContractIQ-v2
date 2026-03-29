@@ -1,4 +1,6 @@
+import asyncio
 from google.cloud import storage
+from google.api_core.exceptions import NotFound
 from datetime import timedelta
 from src.core.config import get_settings
 
@@ -11,7 +13,7 @@ class GCSService:
 
     async def upload_file(self, local_path: str, gcs_path: str, content_type: str = "application/pdf") -> str:
         blob = self.bucket.blob(gcs_path)
-        blob.upload_from_filename(local_path, content_type=content_type)
+        await asyncio.to_thread(blob.upload_from_filename, local_path, content_type=content_type)
         return gcs_path
 
     def get_signed_url(self, gcs_path: str, expiration_minutes: int = 15) -> str:
@@ -20,5 +22,7 @@ class GCSService:
 
     async def delete_file(self, gcs_path: str) -> None:
         blob = self.bucket.blob(gcs_path)
-        if blob.exists():
-            blob.delete()
+        try:
+            await asyncio.to_thread(blob.delete)
+        except NotFound:
+            pass
