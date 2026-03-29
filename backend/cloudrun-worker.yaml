@@ -6,16 +6,43 @@ spec:
   template:
     metadata:
       annotations:
+        run.googleapis.com/cpu-throttling: "false"
         autoscaling.knative.dev/minScale: "1"
         autoscaling.knative.dev/maxScale: "3"
-        run.googleapis.com/cpu-throttling: "false"
+        run.googleapis.com/vpc-access-connector: projects/PROJECT_ID/locations/europe-west1/connectors/contractiq-v2-connector
+        run.googleapis.com/vpc-access-egress: private-ranges-only
     spec:
       containerConcurrency: 1
       timeoutSeconds: 600
+      serviceAccountName: contractiq-v2-worker@PROJECT_ID.iam.gserviceaccount.com
       containers:
-        - image: europe-west1-docker.pkg.dev/PROJECT_ID/contractiq/worker:latest
+        - image: europe-west1-docker.pkg.dev/PROJECT_ID/contractiq-v2/worker:latest
           resources:
             limits:
               cpu: "2"
               memory: 2Gi
-          command: ["python", "-m", "arq", "src.workers.document_worker.WorkerSettings"]
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: database-url
+                  key: latest
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: redis-url
+                  key: latest
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: anthropic-api-key
+                  key: latest
+            - name: VOYAGE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: voyage-api-key
+                  key: latest
+            - name: GCS_BUCKET_NAME
+              value: contractiq-v2-documents
+            - name: ENVIRONMENT
+              value: production
