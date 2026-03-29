@@ -1,7 +1,7 @@
 import uuid
 import enum
 from datetime import datetime
-from sqlalchemy import String, DateTime, Integer, ForeignKey, Boolean, func, Enum as SAEnum
+from sqlalchemy import String, DateTime, Integer, ForeignKey, Boolean, JSON, func, Enum as SAEnum, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from src.core.database import Base
 
@@ -53,6 +53,8 @@ class Document(Base):
     truncated: Mapped[bool] = mapped_column(Boolean, default=False)
     error_message: Mapped[str | None] = mapped_column(String, nullable=True)
     arq_job_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    missing_clauses: Mapped[list | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
 
