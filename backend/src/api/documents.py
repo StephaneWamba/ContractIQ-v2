@@ -23,6 +23,8 @@ from src.services.vector_store import VectorStore
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
+MAX_PDF_SIZE = 50 * 1024 * 1024  # 50 MB
+
 
 def _validate_pdf_magic(file_bytes: bytes) -> bool:
     """Validate PDF by magic bytes (starts with %PDF-)"""
@@ -47,6 +49,10 @@ async def upload_document(
     )
     if not ws_result.scalar_one_or_none():
         raise HTTPException(status_code=403, detail="Workspace not found or access denied")
+
+    # Enforce file size limit before reading into memory
+    if file.size and file.size > MAX_PDF_SIZE:
+        raise HTTPException(status_code=413, detail="File too large. Maximum size is 50 MB.")
 
     # Read file and validate magic bytes
     file_bytes = await file.read()

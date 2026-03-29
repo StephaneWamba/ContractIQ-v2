@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from src.core.database import get_db
@@ -16,6 +17,12 @@ from src.agents.rag_agent import RAGAgent
 from src.agents.review_agent import ReviewAgent
 
 router = APIRouter(prefix="/clauses", tags=["clauses"])
+
+
+class ClausePatchRequest(BaseModel):
+    clause_type: Optional[str] = Field(None, max_length=100)
+    risk_level: Optional[str] = Field(None, max_length=50)
+    risk_reasoning: Optional[str] = Field(None, max_length=5000)
 
 
 @router.get("")
@@ -48,7 +55,7 @@ async def list_clauses(
 @router.patch("/{clause_id}")
 async def update_clause(
     clause_id: str,
-    body: dict,
+    body: ClausePatchRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -64,14 +71,14 @@ async def update_clause(
         raise HTTPException(status_code=404, detail="Clause not found")
 
     allowed = {"risk_level", "risk_reasoning", "clause_type"}
-    for key, value in body.items():
+    for key, value in body.model_dump(exclude_none=True).items():
         if key in allowed:
             if key == "risk_level":
                 try:
                     value = RiskLevel(value.upper())
                 except ValueError:
                     raise HTTPException(status_code=400, detail=f"Invalid risk_level: {value}")
-            if key == "clause_type":
+            elif key == "clause_type":
                 from src.models.clause import ClauseType
                 try:
                     value = ClauseType(value.upper())

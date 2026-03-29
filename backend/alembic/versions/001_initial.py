@@ -88,6 +88,9 @@ def upgrade() -> None:
     op.create_index('ix_document_chunks_document_id', 'document_chunks', ['document_id'])
     op.create_index('ix_document_chunks_workspace_id', 'document_chunks', ['workspace_id'])
     # IVFFlat index for cosine similarity search (voyage-law-2 = 1024 dims)
+    # NOTE: IVFFlat requires trained centroids. After loading initial data (500+ rows),
+    # run: REINDEX INDEX ix_document_chunks_embedding
+    # to rebuild with proper centroid training for accurate similarity search.
     op.execute(
         "CREATE INDEX ix_document_chunks_embedding ON document_chunks "
         "USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100)"
