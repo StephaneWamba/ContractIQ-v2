@@ -5,11 +5,13 @@ from src.core.config import get_settings
 
 CLAUSE_EXTRACTION_SCHEMA = {
     "type": "object",
+    "additionalProperties": False,
     "properties": {
         "clauses": {
             "type": "array",
             "items": {
                 "type": "object",
+                "additionalProperties": False,
                 "properties": {
                     "clause_type": {"type": "string"},
                     "text": {"type": "string"},
