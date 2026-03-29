@@ -1,12 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, desc
+import csv
+import io
 from src.core.database import get_db
 from src.core.auth import get_current_user
 from src.core.rate_limit import limiter
 from src.models.user import User
 from src.models.workspace import Workspace
+from src.models.agent_audit_log import AgentAuditLog
 from src.services.playbook_service import seed_workspace_playbooks
 from src.services.gcs_service import GCSService
 from src.services.workspace_tools import WorkspaceToolkit
@@ -111,3 +115,79 @@ async def search_workspace(
                 for m in matches
             ],
         }
+
+
+@router.get("/{workspace_id}/agent-audit-logs")
+async def get_agent_audit_logs(
+    workspace_id: str,
+    limit: int = 50,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Return the 50 most recent agent tool calls for this workspace."""
+    ws = await db.execute(
+        select(Workspace).where(Workspace.id == workspace_id, Workspace.owner_id == current_user.id)
+    )
+    if not ws.scalar_one_or_none():
+        raise HTTPException(status_code=403, detail="Access denied")
+    result = await db.execute(
+        select(AgentAuditLog)
+        .where(AgentAuditLog.workspace_id == workspace_id)
+        .order_by(desc(AgentAuditLog.created_at))
+        .limit(min(limit, 200))
+    )
+    logs = result.scalars().all()
+    return [
+        {
+            "id": log.id,
+            "document_id": log.document_id,
+            "tool": log.tool,
+            "input_summary": log.input_summary,
+            "result_chars": log.result_chars,
+            "created_at": log.created_at,
+        }
+        for log in logs
+    ]
+
+
+@router.get("/{workspace_id}/export")
+async def export_workspace(
+    workspace_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Export all agent analyses for this workspace as a CSV."""
+    from src.models.document import Document
+    ws = await db.execute(
+        select(Workspace).where(Workspace.id == workspace_id, Workspace.owner_id == current_user.id)
+    )
+    if not ws.scalar_one_or_none():
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    docs_result = await db.execute(
+        select(Document).where(Document.workspace_id == workspace_id)
+    )
+    docs = docs_result.scalars().all()
+
+    gcs = GCSService()
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["document_id", "filename", "contract_type", "party_perspective", "status", "page_count", "analysis"])
+
+    for doc in docs:
+        analysis = ""
+        if doc.md_path:
+            analysis_path = f"workspaces/{workspace_id}/documents/{doc.id}/analysis.md"
+            analysis = await gcs.read_text(analysis_path) or ""
+        writer.writerow([
+            doc.id, doc.filename, doc.contract_type.value,
+            doc.party_perspective.value, doc.status.value,
+            doc.page_count or 0, analysis[:2000],
+        ])
+
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=workspace-{workspace_id[:8]}.csv"},
+    )
