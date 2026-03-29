@@ -8,7 +8,7 @@ from slowapi.errors import RateLimitExceeded
 from src.core.config import get_settings
 from src.core.database import engine, get_db
 from src.core.rate_limit import limiter
-from src.api import auth, documents, clauses, conversations
+from src.api import auth, documents, clauses, conversations, workspaces
 
 
 @asynccontextmanager
@@ -44,6 +44,7 @@ app.include_router(auth.router, prefix="/api/v2")
 app.include_router(documents.router, prefix="/api/v2")
 app.include_router(clauses.router, prefix="/api/v2")
 app.include_router(conversations.router, prefix="/api/v2")
+app.include_router(workspaces.router, prefix="/api/v2")
 
 
 @app.get("/health")
