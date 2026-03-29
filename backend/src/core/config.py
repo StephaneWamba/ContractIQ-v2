@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     gcs_bucket_name: str
     gcp_project_id: str = ""
 
+    # CORS
+    allowed_origins: list[str] = ["http://localhost:3000"]
+
     # Langfuse (optional observability)
     langfuse_public_key: str = ""
     langfuse_secret_key: str = ""
