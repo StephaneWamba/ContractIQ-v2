@@ -1,0 +1,21 @@
+# Standard Clause Taxonomy
+
+## Core Commercial
+PAYMENT, TERMINATION, LIABILITY, CONFIDENTIALITY, IP_OWNERSHIP, DISPUTE_RESOLUTION, FORCE_MAJEURE, REPRESENTATIONS, INDEMNIFICATION, WARRANTIES
+
+## Restrictions
+NON_COMPETE, NON_SOLICITATION, SEVERANCE
+
+## Data & Privacy
+DATA_PROCESSING, SECURITY, RETENTION
+
+## Operational
+PAYMENT, CHANGE_ORDER, ACCEPTANCE_CRITERIA, AUDIT_RIGHTS, KEY_PERSONNEL, BENCHMARKING, MFN
+
+## Boilerplate
+ENTIRE_AGREEMENT, AMENDMENT, ASSIGNMENT, NOTICE, WAIVER, SURVIVAL, GOVERNING_LAW, LIQUIDATED_DAMAGES
+
+## Classification Rules
+- Match by **primary legal effect**, not keywords
+- If dual-purpose, use the higher-risk type
+- Defined terms sections: use OTHER unless they define a key risk concept
