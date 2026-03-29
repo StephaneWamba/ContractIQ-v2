@@ -60,7 +60,7 @@ class RAGAgent:
         ]
 
         async with self._client.messages.stream(
-            model="claude-opus-4-6",
+            model="claude-haiku-4-5-20251001",
             max_tokens=2048,
             system="You are a contract analysis assistant. Answer questions about the contract using ONLY the provided document excerpts. Always cite your sources.",
             messages=[
