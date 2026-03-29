@@ -28,6 +28,7 @@ dependencies = [
     "slowapi",
     "python-magic",
     "google-cloud-storage",
+    "rapidfuzz>=3.0",
 ]
 
 [build-system]
