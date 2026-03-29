@@ -19,6 +19,7 @@ dependencies = [
     "email-validator",
     "PyJWT>=2.8.0",
     "passlib[bcrypt]",
+    "bcrypt<4.0",
     "python-multipart",
     "redis[hiredis]",
     "aioredis",

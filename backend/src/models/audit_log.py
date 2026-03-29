@@ -22,7 +22,7 @@ class AuditLog(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
-    action: Mapped[AuditAction] = mapped_column(SAEnum(AuditAction), nullable=False, index=True)
+    action: Mapped[AuditAction] = mapped_column(SAEnum(AuditAction, native_enum=False), nullable=False, index=True)
     resource_type: Mapped[str | None] = mapped_column(String, nullable=True)
     resource_id: Mapped[str | None] = mapped_column(String, nullable=True)
     ip_address: Mapped[str | None] = mapped_column(String, nullable=True)
