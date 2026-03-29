@@ -1,6 +1,5 @@
 # ContractIQ v2
 
-AI-powered contract intelligence platform built on Claude Agent SDK.
+AI-powered contract intelligence — Claude Agent SDK + Skills + pgvector on GCP.
 
-## Deploy
-Deploys automatically on push to `main` via GitHub Actions → Fly.io.
+Deploys automatically on push to `main` via GitHub Actions → Cloud Run.
