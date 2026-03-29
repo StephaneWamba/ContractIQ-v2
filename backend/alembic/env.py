@@ -19,12 +19,20 @@ from src.core.database import Base
 target_metadata = Base.metadata
 
 
-def get_url():
-    return os.environ["DATABASE_URL"].replace("postgresql+asyncpg", "postgresql")
+def get_sync_url():
+    url = os.environ["DATABASE_URL"]
+    return url.replace("postgresql+asyncpg", "postgresql+psycopg2").replace("postgresql://", "postgresql+psycopg2://")
+
+
+def get_async_url():
+    url = os.environ["DATABASE_URL"]
+    if "postgresql+asyncpg" not in url:
+        url = url.replace("postgresql://", "postgresql+asyncpg://")
+    return url
 
 
 def run_migrations_offline() -> None:
-    url = get_url()
+    url = get_sync_url()
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -43,7 +51,7 @@ def do_run_migrations(connection):
 
 async def run_async_migrations():
     config_section = config.get_section(config.config_ini_section)
-    config_section["sqlalchemy.url"] = get_url()
+    config_section["sqlalchemy.url"] = get_async_url()
     connectable = async_engine_from_config(
         config_section,
         prefix="sqlalchemy.",
