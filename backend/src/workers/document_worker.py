@@ -2,6 +2,7 @@ import asyncio
 import logging
 import tempfile
 import os
+from arq.connections import RedisSettings
 from sqlalchemy import select
 
 from src.core.config import get_settings
@@ -77,7 +78,8 @@ async def process_document(ctx: dict, document_id: str) -> None:
         tmp_path = None
         try:
             # Step 1: Download from GCS
-            tmp_path = tempfile.mktemp(suffix=".pdf")
+            with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp_file:
+                tmp_path = tmp_file.name
             blob = gcs_service.bucket.blob(document.gcs_path)
             await asyncio.to_thread(blob.download_to_filename, tmp_path)
 
@@ -127,12 +129,13 @@ async def process_document(ctx: dict, document_id: str) -> None:
                 document_id=document_id,
             )
 
-            # Override contract_type if LLM detected a different one
-            detected_type = extraction.get("contract_type_detected", "").lower().replace(" ", "_")
-            for ct in ContractType:
-                if ct.value == detected_type:
-                    document.contract_type = ct
-                    break
+            # Override contract_type if LLM detected a different one (only if currently GENERIC)
+            if document.contract_type == ContractType.GENERIC:
+                detected_type = extraction.get("contract_type_detected", "").lower().replace(" ", "_")
+                for ct in ContractType:
+                    if ct.value == detected_type:
+                        document.contract_type = ct
+                        break
 
             # Persist clauses
             for clause_data in extraction.get("clauses", []):
@@ -161,7 +164,14 @@ async def process_document(ctx: dict, document_id: str) -> None:
                 db.add(clause)
 
             # Step 8: Missing clause checklist
-            extracted_types = [c.get("clause_type", "OTHER").upper() for c in extraction.get("clauses", [])]
+            extracted_types = []
+            for clause_data in extraction.get("clauses", []):
+                ct_str = clause_data.get("clause_type", "OTHER").upper()
+                try:
+                    ClauseType(ct_str)
+                    extracted_types.append(ct_str)
+                except ValueError:
+                    pass  # coerced to OTHER, don't count as extracted
             missing = get_missing_clauses(document.contract_type, extracted_types)
             if missing:
                 document.missing_clauses = missing
@@ -190,7 +200,7 @@ async def process_document(ctx: dict, document_id: str) -> None:
 
 class WorkerSettings:
     functions = [process_document]
-    redis_settings = None  # set dynamically via REDIS_URL env var
+    redis_settings = RedisSettings.from_dsn(os.environ.get("REDIS_URL", "redis://localhost:6379"))
 
     @staticmethod
     async def on_startup(ctx: dict) -> None:
