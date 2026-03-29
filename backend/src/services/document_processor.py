@@ -5,48 +5,49 @@ from pathlib import Path
 
 PAGE_MARKER_TEMPLATE = "\n\n--- PAGE {n} ---\n\n"
 HEADER_FOOTER_MARGIN = 0.08  # top/bottom 8% of page height
+MAX_CHARS = 400_000  # ~100K tokens — safe for Claude 200K context window
 
 
 @dataclass(frozen=True)
-class PageChunk:
-    page_number: int
-    chunk_index: int
+class LocationEntry:
+    """A text block's position in the PDF — used by the frontend for highlighting."""
     text: str
-    bbox: tuple | None = None
+    page: int
+    bbox: tuple  # (x0, y0, x1, y1)
 
 
 @dataclass(frozen=True)
 class ProcessedDocument:
-    full_text: str          # with PAGE N markers injected
-    chunks: list[PageChunk]
+    contract_md: str                  # full contract as page-marked markdown (sent to LLM)
+    locations: list[LocationEntry]    # bbox per text block (for PDF highlighting)
     page_count: int
     metadata: dict
     truncated: bool = False
 
 
 class DocumentProcessor:
-    MAX_CHARS = 400_000  # ~100K tokens — safe for Claude 200K context window
 
     def process_pdf(self, file_path: str) -> ProcessedDocument:
         doc = fitz.open(file_path)
-        chunks = []
-        full_text_parts = []
-        chunk_index = 0
+        locations: list[LocationEntry] = []
+        full_text_parts: list[str] = []
+        total_chars = 0
+        truncated = False
 
         for page_num, page in enumerate(doc, start=1):
+            if truncated:
+                break
+
             page_height = page.rect.height
             page_width = page.rect.width
 
-            # Inject page marker for accurate LLM page attribution
+            # Page marker for accurate LLM page attribution
             full_text_parts.append(PAGE_MARKER_TEMPLATE.format(n=page_num))
 
-            # Get blocks with coordinates
             blocks = page.get_text("dict")["blocks"]
-
-            # Text blocks only (type 0)
             text_blocks = [b for b in blocks if b["type"] == 0]
 
-            # Strip headers/footers by position (top/bottom 8%)
+            # Strip headers/footers (top/bottom 8%)
             text_blocks = [
                 b for b in text_blocks
                 if b["bbox"][1] > page_height * HEADER_FOOTER_MARGIN
@@ -57,7 +58,6 @@ class DocumentProcessor:
             mid_x = page_width / 2
             left_blocks = [b for b in text_blocks if b["bbox"][0] < mid_x * 0.8]
             right_blocks = [b for b in text_blocks if b["bbox"][0] >= mid_x * 0.8]
-
             has_two_columns = (
                 len(left_blocks) > 2 and len(right_blocks) > 2
                 and any(
@@ -85,38 +85,24 @@ class DocumentProcessor:
                 if len(text) < 30:
                     continue
 
+                # Truncate at MAX_CHARS
+                if total_chars + len(text) > MAX_CHARS:
+                    truncated = True
+                    break
+
                 full_text_parts.append(text)
-                chunks.append(PageChunk(
-                    page_number=page_num,
-                    chunk_index=chunk_index,
+                total_chars += len(text)
+                locations.append(LocationEntry(
                     text=text,
+                    page=page_num,
                     bbox=tuple(block["bbox"]),
                 ))
-                chunk_index += 1
 
-        full_text = "\n".join(full_text_parts)
-
-        # Truncate chunks to match full_text budget
-        char_budget = self.MAX_CHARS
-        running = 0
-        kept_chunks = []
-        truncated = False
-        for chunk in chunks:
-            if running + len(chunk.text) > char_budget:
-                truncated = True
-                break
-            running += len(chunk.text)
-            kept_chunks.append(chunk)
-        chunks = kept_chunks
-
-        if len(full_text) > self.MAX_CHARS:
-            truncated = True
-            cut = full_text.rfind("\n", 0, self.MAX_CHARS)
-            full_text = full_text[:cut] if cut > 0 else full_text[:self.MAX_CHARS]
+        contract_md = "\n".join(full_text_parts)
 
         return ProcessedDocument(
-            full_text=full_text,
-            chunks=chunks,
+            contract_md=contract_md,
+            locations=locations,
             page_count=len(doc),
             metadata={
                 "title": doc.metadata.get("title", ""),
