@@ -71,7 +71,7 @@ class RAGAgent:
                     ]
                 }
             ],
-            betas=["citations-2024-11-06"],
+            extra_headers={"anthropic-beta": "citations-2024-11-06"},
         ) as stream:
             async for event in stream:
                 if hasattr(event, "type"):
@@ -85,6 +85,6 @@ class RAGAgent:
                                 # The Citations API (beta: citations-2024-11-06) streams citation objects
                                 # in delta.citation (list). Adjust if SDK changes the field name.
                                 citation_list = delta.citation if hasattr(delta, "citation") else []
-                                yield f"data: {json.dumps({'type': 'citations', 'citations': [{'document_title': c.get('document_title', ''), 'cited_text': c.get('cited_text', '')} for c in citation_list]})}\n\n"
+                                yield f"data: {json.dumps({'type': 'citations', 'citations': [{'document_title': getattr(c, 'document_title', ''), 'cited_text': getattr(c, 'cited_text', '')} for c in citation_list]})}\n\n"
 
         yield f"data: {json.dumps({'type': 'done'})}\n\n"
