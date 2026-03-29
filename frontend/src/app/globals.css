@@ -59,6 +59,11 @@ body::before {
   50%       { box-shadow: 0 0 0 8px rgba(200,169,110,0.05); }
 }
 
+.dot-grid {
+  background-image: radial-gradient(circle, rgba(255,255,255,0.12) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
