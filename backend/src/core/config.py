@@ -33,9 +33,6 @@ class Settings(BaseSettings):
     # CORS
     allowed_origins: list[str] = ["http://localhost:3000"]
 
-    # Langfuse (optional observability)
-    langfuse_public_key: str = ""
-    langfuse_secret_key: str = ""
 
     def model_post_init(self, __context) -> None:
         if self.environment == "production":

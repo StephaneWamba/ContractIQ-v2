@@ -21,7 +21,6 @@ dependencies = [
     "python-multipart",
     "redis[hiredis]",
     "aioredis",
-    "langfuse",
     "sse-starlette",
     "httpx",
     "slowapi",
