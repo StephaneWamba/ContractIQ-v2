@@ -2,7 +2,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { FilePdf, DotsThreeOutline } from "@phosphor-icons/react"
-import { StatusBadge, ContractTypeBadge, RiskDots } from "@/components/ui/badge"
+import { StatusBadge, ContractTypeBadge } from "@/components/ui/badge"
 import type { Document } from "@/hooks/use-documents"
 import { getToken } from "@/lib/auth"
 
@@ -49,7 +49,7 @@ export function DocumentRow({ doc, workspaceId, onDeleted }: DocumentRowProps) {
     const token = getToken()
     try {
       await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/workspaces/${workspaceId}/documents/${doc.id}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/documents/${doc.id}`,
         { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }
       )
       onDeleted()
@@ -129,7 +129,7 @@ export function DocumentRow({ doc, workspaceId, onDeleted }: DocumentRowProps) {
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => { setHovered(false); setMenuOpen(false) }}
-      onClick={() => router.push(`/app/documents/${doc.id}`)}
+      onClick={() => router.push(`/documents/${doc.id}`)}
     >
       {/* File icon */}
       <div style={{ width: "32px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -162,12 +162,7 @@ export function DocumentRow({ doc, workspaceId, onDeleted }: DocumentRowProps) {
         <StatusBadge status={badgeStatus} />
       </div>
 
-      {/* Risk dots */}
-      <div style={{ width: "60px", flexShrink: 0 }}>
-        {doc.status === "ready" && (
-          <RiskDots critical={0} high={1} medium={3} low={(doc.page_count ?? 1) * 2} />
-        )}
-      </div>
+      <div style={{ width: "60px", flexShrink: 0 }} />
 
       {/* Date */}
       <div
@@ -227,11 +222,11 @@ export function DocumentRow({ doc, workspaceId, onDeleted }: DocumentRowProps) {
               {[
                 {
                   label: "View",
-                  onClick: () => router.push(`/app/documents/${doc.id}`),
+                  onClick: () => router.push(`/documents/${doc.id}`),
                 },
                 {
                   label: "Download PDF",
-                  onClick: () => router.push(`/app/documents/${doc.id}`),
+                  onClick: () => router.push(`/documents/${doc.id}`),
                 },
                 {
                   label: "Delete",

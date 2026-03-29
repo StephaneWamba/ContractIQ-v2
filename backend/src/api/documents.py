@@ -148,6 +148,46 @@ async def list_documents(
     ]
 
 
+@router.get("/{document_id}/analysis")
+async def get_analysis(
+    document_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Return analysis.md content written by the agent after processing."""
+    doc = await _get_owned_document(document_id, current_user.id, db)
+    if doc.status != DocumentStatus.READY:
+        raise HTTPException(status_code=404, detail="Analysis not ready yet")
+    gcs_service = GCSService()
+    path = f"workspaces/{doc.workspace_id}/documents/{document_id}/analysis.md"
+    content = await gcs_service.read_text(path)
+    if content is None:
+        raise HTTPException(status_code=404, detail="Analysis file not found")
+    return {"content": content}
+
+
+@router.get("/{document_id}/pdf")
+async def get_pdf_proxy(
+    document_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Proxy the PDF through the API to avoid GCS CORS issues in the browser."""
+    from fastapi.responses import Response as FastAPIResponse
+    doc = await _get_owned_document(document_id, current_user.id, db)
+    if not doc.gcs_path:
+        raise HTTPException(status_code=404, detail="PDF not available")
+    gcs_service = GCSService()
+    blob = gcs_service.bucket.blob(doc.gcs_path)
+    import asyncio
+    data = await asyncio.to_thread(blob.download_as_bytes)
+    return FastAPIResponse(
+        content=data,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="{doc.filename}"'},
+    )
+
+
 @router.get("/{document_id}/pdf-url")
 async def get_pdf_url(
     document_id: str,

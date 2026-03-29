@@ -315,7 +315,7 @@ export default function SearchPage() {
                     <ArrowSquareOut
                       size={14}
                       style={{ cursor: "pointer", color: "var(--text-muted)" }}
-                      onClick={() => router.push(`/app/documents/${r.document_id}`)}
+                      onClick={() => router.push(`/documents/${r.document_id}`)}
                     />
                   </div>
                   <p style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "8px" }}>
@@ -366,7 +366,13 @@ export default function SearchPage() {
                     <ArrowSquareOut
                       size={14}
                       style={{ cursor: "pointer", color: "var(--text-muted)" }}
-                      onClick={() => router.push(`/app/documents`)}
+                      onClick={() => {
+                        // path format: workspaces/{ws_id}/documents/{doc_id}/contract.md
+                        const parts = (r as FuzzyResult).path.split("/")
+                        const docIdx = parts.indexOf("documents")
+                        const docId = docIdx !== -1 ? parts[docIdx + 1] : null
+                        router.push(docId ? `/documents/${docId}` : "/documents")
+                      }}
                     />
                   </div>
                   <p style={{ fontSize: "11px", color: "var(--text-muted)" }}>
