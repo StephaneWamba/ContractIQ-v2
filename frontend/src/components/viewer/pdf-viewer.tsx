@@ -1,6 +1,6 @@
 "use client"
 import dynamic from "next/dynamic"
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react"
 import { CaretLeft, CaretRight, Minus, Plus, DownloadSimple } from "@phosphor-icons/react"
 import { Spinner } from "@/components/ui/spinner"
 import type { Clause, ClauseLocations, LocationEntry } from "@/hooks/use-document-detail"
@@ -85,7 +85,7 @@ export function PdfViewer({ pdfUrl, selectedClause, clauseLocations }: Props) {
     }
   }, [selectedClause, clauseLocations, page, pageDims, renderWidth])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     drawHighlights()
   }, [drawHighlights])
 
@@ -257,7 +257,11 @@ export function PdfViewer({ pdfUrl, selectedClause, clauseLocations }: Props) {
               renderTextLayer={false}
               renderAnnotationLayer={false}
               onRenderSuccess={(p) => {
-                setPageDims({ width: p.originalWidth, height: p.originalHeight })
+                setPageDims((prev) =>
+                  prev?.width === p.originalWidth && prev?.height === p.originalHeight
+                    ? prev
+                    : { width: p.originalWidth, height: p.originalHeight }
+                )
               }}
             />
           </PDFDocumentDynamic>
