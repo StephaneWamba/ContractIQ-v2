@@ -7,7 +7,7 @@ export default function UploadPage() {
   return (
     <UploadModal
       open={true}
-      onClose={() => router.push("/app/documents")}
+      onClose={() => router.push("/documents")}
     />
   )
 }

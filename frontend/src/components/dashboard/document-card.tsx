@@ -44,7 +44,7 @@ export function DocumentCard({ doc }: DocumentCardProps) {
 
   return (
     <Link
-      href={`/app/documents/${doc.id}`}
+      href={`/documents/${doc.id}`}
       style={{ textDecoration: "none", display: "block" }}
     >
       <div

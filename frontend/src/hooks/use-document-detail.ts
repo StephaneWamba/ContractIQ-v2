@@ -12,6 +12,14 @@ export interface Clause {
   page_number?: number
 }
 
+export interface LocationEntry {
+  page: number
+  bbox: [number, number, number, number] // x0, y0, x1, y1 in PDF points
+}
+
+// clause_type (uppercase) → array of bbox blocks
+export type ClauseLocations = Record<string, LocationEntry[]>
+
 export interface AnalysisData {
   summary: string
   key_risks: Array<{ level: string; description: string; reference?: string }>
@@ -69,6 +77,7 @@ export function useDocumentDetail(workspaceId: string | null, documentId: string
   const [clauses, setClauses] = useState<Clause[]>([])
   const [analysis, setAnalysis] = useState<AnalysisData | null>(null)
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+  const [clauseLocations, setClauseLocations] = useState<ClauseLocations>({})
   const [loading, setLoading] = useState(true)
   const analysisLoadedRef = useRef(false)
   const pdfLoadedRef = useRef(false)
@@ -84,12 +93,19 @@ export function useDocumentDetail(workspaceId: string | null, documentId: string
 
     async function loadAnalysis() {
       if (analysisLoadedRef.current) return
-      const res = await fetch(`${api}/documents/${documentId}/analysis`, { headers })
-      if (!res.ok) return
-      const data = await res.json()
+      const [analysisRes, clauseLocsRes] = await Promise.all([
+        fetch(`${api}/documents/${documentId}/analysis`, { headers }),
+        fetch(`${api}/documents/${documentId}/clause-locations`, { headers }),
+      ])
+      if (!analysisRes.ok) return
+      const data = await analysisRes.json()
       const parsed = parseAnalysisMd(data.content as string)
       setClauses(parsed.clauses)
       setAnalysis(parsed.analysis)
+      if (clauseLocsRes.ok) {
+        const locs: ClauseLocations = await clauseLocsRes.json()
+        setClauseLocations(locs)
+      }
       analysisLoadedRef.current = true
     }
 
@@ -151,5 +167,5 @@ export function useDocumentDetail(workspaceId: string | null, documentId: string
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspaceId, documentId])
 
-  return { document, clauses, analysis, pdfUrl, loading }
+  return { document, clauses, analysis, pdfUrl, clauseLocations, loading }
 }

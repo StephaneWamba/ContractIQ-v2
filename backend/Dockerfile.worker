@@ -11,6 +11,7 @@ RUN groupadd -r agent && useradd -r -g agent -m -d /home/agent agent
 WORKDIR /app
 COPY --chown=agent:agent . .
 RUN pip install --no-cache-dir -e .
+RUN python -m spacy download en_core_web_lg
 RUN mkdir -p /home/agent/.claude && chown -R agent:agent /home/agent/.claude
 
 USER agent

@@ -188,6 +188,71 @@ async def get_pdf_proxy(
     )
 
 
+@router.get("/{document_id}/clause-locations")
+async def get_clause_locations(
+    document_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Return clause_locations.json — precise per-clause bbox data for PDF highlighting."""
+    doc = await _get_owned_document(document_id, current_user.id, db)
+    gcs_service = GCSService()
+    path = f"workspaces/{doc.workspace_id}/documents/{document_id}/clause_locations.json"
+    content = await gcs_service.read_text(path)
+    if content is None:
+        raise HTTPException(status_code=404, detail="Clause locations not available")
+    import json as _json
+    return _json.loads(content)
+
+
+@router.get("/{document_id}/locations")
+async def get_locations(
+    document_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Return locations.json — per-block bbox data for PDF highlighting."""
+    doc = await _get_owned_document(document_id, current_user.id, db)
+    gcs_service = GCSService()
+    path = f"workspaces/{doc.workspace_id}/documents/{document_id}/locations.json"
+    content = await gcs_service.read_text(path)
+    if content is None:
+        raise HTTPException(status_code=404, detail="Locations not available")
+    import json as _json
+    return _json.loads(content)
+
+
+@router.post("/{document_id}/backfill-clause-locations", status_code=200)
+async def backfill_clause_locations(
+    document_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Backfill clause_locations.json for existing documents that were processed before this feature."""
+    import json as _json
+    from src.workers.document_worker import _build_clause_locations
+
+    doc = await _get_owned_document(document_id, current_user.id, db)
+    gcs_service = GCSService()
+
+    analysis_path = f"workspaces/{doc.workspace_id}/documents/{document_id}/analysis.md"
+    locations_path = f"workspaces/{doc.workspace_id}/documents/{document_id}/locations.json"
+
+    analysis_md = await gcs_service.read_text(analysis_path)
+    locations_raw = await gcs_service.read_text(locations_path)
+
+    if not analysis_md or not locations_raw:
+        raise HTTPException(status_code=404, detail="analysis.md or locations.json not found")
+
+    locations_data = _json.loads(locations_raw)
+    clause_locations = _build_clause_locations(analysis_md, locations_data)
+
+    cl_path = f"workspaces/{doc.workspace_id}/documents/{document_id}/clause_locations.json"
+    await gcs_service.write_text(cl_path, _json.dumps(clause_locations), content_type="application/json")
+
+    return {"clause_types": list(clause_locations.keys()), "count": len(clause_locations)}
+
+
 @router.get("/{document_id}/pdf-url")
 async def get_pdf_url(
     document_id: str,

@@ -135,7 +135,7 @@ export default function DocumentsPage() {
 
   const uploadButton = (
     <Link
-      href="/app/documents/upload"
+      href="/documents/upload"
       style={{
         display: "inline-flex",
         alignItems: "center",

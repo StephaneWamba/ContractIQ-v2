@@ -41,7 +41,7 @@ export function EmptyState() {
         </p>
       </div>
       <Link
-        href="/app/documents/upload"
+        href="/documents/upload"
         style={{
           display: "inline-flex",
           alignItems: "center",

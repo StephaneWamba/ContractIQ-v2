@@ -27,17 +27,25 @@ export function useUpload() {
       return
     }
 
+    // Map UI perspective values to API enum values
+    const perspectiveMap: Record<string, string> = {
+      provider: "vendor",
+      client: "customer",
+      vendor: "vendor",
+      customer: "customer",
+    }
+
     const formData = new FormData()
     formData.append("file", opts.file)
-    formData.append("contract_type", opts.contractType)
-    formData.append("party_perspective", opts.partyPerspective)
+    formData.append("workspace_id", opts.workspaceId)
+    formData.append("party_perspective", perspectiveMap[opts.partyPerspective] ?? "unknown")
 
     try {
       await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest()
         xhr.open(
           "POST",
-          `${process.env.NEXT_PUBLIC_API_URL}/workspaces/${opts.workspaceId}/documents/upload`
+          `${process.env.NEXT_PUBLIC_API_URL}/documents`
         )
         xhr.setRequestHeader("Authorization", `Bearer ${token}`)
         xhr.upload.onprogress = (e) => {

@@ -4,7 +4,12 @@ export function middleware(req: NextRequest) {
   const token = req.cookies.get("ciq_token")?.value
   const pathname = req.nextUrl.pathname
 
-  const isAppRoute = pathname.startsWith("/app")
+  const isAppRoute =
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/documents") ||
+    pathname.startsWith("/search") ||
+    pathname.startsWith("/playbooks") ||
+    pathname.startsWith("/settings")
   const isAuthRoute =
     pathname === "/login" || pathname === "/register" || pathname === "/forgot-password"
 
@@ -15,12 +20,12 @@ export function middleware(req: NextRequest) {
   }
 
   if (isAuthRoute && token) {
-    return NextResponse.redirect(new URL("/app/dashboard", req.url))
+    return NextResponse.redirect(new URL("/dashboard", req.url))
   }
 
   return NextResponse.next()
 }
 
 export const config = {
-  matcher: ["/app/:path*", "/login", "/register", "/forgot-password"],
+  matcher: ["/dashboard/:path*", "/documents/:path*", "/search", "/playbooks/:path*", "/settings/:path*", "/login", "/register", "/forgot-password"],
 }

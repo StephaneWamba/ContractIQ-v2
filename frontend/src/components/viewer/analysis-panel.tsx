@@ -1,6 +1,7 @@
 "use client"
 import { useState } from "react"
 import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 import { PaperPlaneTilt } from "@phosphor-icons/react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
@@ -53,22 +54,40 @@ export function AnalysisPanel({
     try {
       const token = getToken()
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/workspaces/${workspaceId}/conversations`,
+        `${process.env.NEXT_PUBLIC_API_URL}/conversations/ask`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ document_id: documentId, message: text }),
+          body: JSON.stringify({
+            question: text,
+            workspace_id: workspaceId,
+            document_id: documentId,
+          }),
         }
       )
-      const data = await res.json()
+      // Response is SSE stream with JSON chunks: {"type":"text","text":"..."}
+      const raw = await res.text()
+      const content = raw
+        .split("\n")
+        .map((l) => {
+          const line = l.startsWith("data: ") ? l.slice(6).trim() : l.trim()
+          if (!line || line === "[DONE]") return ""
+          try {
+            const obj = JSON.parse(line)
+            return obj.type === "text" ? (obj.text ?? "") : ""
+          } catch {
+            return line
+          }
+        })
+        .join("")
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content: data.response || data.message || "No response",
+          content: content || "No response",
         },
       ])
     } catch {
@@ -84,8 +103,8 @@ export function AnalysisPanel({
   return (
     <div
       style={{
-        width: "360px",
-        flexShrink: 0,
+        flex: 1,
+        minWidth: "400px",
         borderLeft: "1px solid var(--border-subtle)",
         display: "flex",
         flexDirection: "column",
@@ -138,7 +157,7 @@ export function AnalysisPanel({
               }}
               className="prose-analysis"
             >
-              <ReactMarkdown>{analysis.summary}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{analysis.summary}</ReactMarkdown>
             </div>
           ) : (
             <div
@@ -324,7 +343,9 @@ export function AnalysisPanel({
                       color: "var(--text-primary)",
                     }}
                   >
-                    {msg.content}
+                    {msg.role === "assistant" ? (
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                    ) : msg.content}
                   </div>
                 </div>
               ))

@@ -19,6 +19,87 @@ from src.services.workspace_tools import WorkspaceToolkit
 logger = logging.getLogger(__name__)
 
 
+def _build_clause_locations(
+    analysis_md: str,
+    locations_data: list[dict],
+) -> dict[str, list[dict]]:
+    """
+    For each clause in analysis.md, find the best-matching bbox blocks on the
+    clause's declared page. Returns { clause_type: [{page, bbox}, ...] }.
+
+    Strategy:
+    1. Parse clause type + page_number + text from analysis.md
+    2. Filter locations to only that page (huge precision gain)
+    3. Score each block by token overlap with clause text
+    4. Keep blocks with overlap >= 30% of clause tokens
+    """
+    import re
+
+    def tokenize(s: str) -> set[str]:
+        return {
+            w.lower()
+            for w in re.findall(r"[a-zA-Z]{4,}", s)
+            if w.lower() not in {
+                "that", "with", "this", "from", "will", "have", "been", "they",
+                "their", "shall", "which", "such", "each", "when", "then",
+                "where", "vendor", "axway", "party", "agreement", "services",
+                "deliverables", "herein", "thereof",
+            }
+        }
+
+    # Parse clauses from analysis.md
+    clause_re = re.compile(
+        r"###\s+(.+?)\s+[—-]+\s*(CRITICAL|HIGH|MEDIUM|LOW)\s*\n([\s\S]*?)(?=\n###|\n##|$)",
+        re.IGNORECASE,
+    )
+    page_re = re.compile(r"\*\*Page:\*\*\s*(\d+)")
+    text_re = re.compile(r'\*\*Text:\*\*\s*"([\s\S]*?)"')
+
+    # Group locations by page for fast lookup
+    by_page: dict[int, list[dict]] = {}
+    for loc in locations_data:
+        by_page.setdefault(loc["page"], []).append(loc)
+
+    result: dict[str, list[dict]] = {}
+
+    for m in clause_re.finditer(analysis_md):
+        clause_type = m.group(1).strip().upper().replace(" ", "_")
+        body = m.group(3)
+
+        page_m = page_re.search(body)
+        text_m = text_re.search(body)
+
+        if not page_m or not text_m:
+            continue
+
+        page_num = int(page_m.group(1))
+        clause_text = text_m.group(1).strip()
+        clause_tokens = tokenize(clause_text)
+
+        if not clause_tokens or page_num not in by_page:
+            continue
+
+        # Score blocks on this page
+        scored = []
+        for loc in by_page[page_num]:
+            block_tokens = tokenize(loc["text"])
+            if not block_tokens:
+                continue
+            overlap = len(clause_tokens & block_tokens) / len(clause_tokens)
+            if overlap >= 0.30:
+                scored.append((overlap, loc))
+
+        if scored:
+            # Sort by overlap descending, keep top 5 blocks
+            scored.sort(key=lambda x: x[0], reverse=True)
+            result[clause_type] = [
+                {"page": loc["page"], "bbox": loc["bbox"]}
+                for _, loc in scored[:5]
+            ]
+
+    return result
+
+
 async def process_document(ctx: dict, document_id: str) -> None:
     """ARQ job: PDF → contract.md + locations.json + embeddings + agent analysis."""
     gcs = GCSService()
@@ -101,7 +182,44 @@ async def process_document(ctx: dict, document_id: str) -> None:
             ):
                 pass  # worker doesn't stream — agent writes artifacts directly to GCS
 
-            # Step 7: Mark READY
+            # Step 7: Build clause_locations.json — precise per-page bbox lookup
+            # Parse analysis.md to get clause type → page, then match against locations.json
+            try:
+                analysis_path = f"workspaces/{document.workspace_id}/documents/{document_id}/analysis.md"
+                # Retry up to 3 times with backoff — GCS write from agent may need a moment
+                analysis_md = None
+                for attempt in range(3):
+                    analysis_md = await gcs.read_text(analysis_path)
+                    if analysis_md:
+                        break
+                    if attempt < 2:
+                        await asyncio.sleep(2 ** attempt)  # 1s, 2s
+
+                if not analysis_md:
+                    logger.error(
+                        f"clause_locations skipped for {document_id}: analysis.md not found in GCS "
+                        f"after 3 attempts (path: {analysis_path})"
+                    )
+                elif not locations_data:
+                    logger.error(
+                        f"clause_locations skipped for {document_id}: locations_data is empty"
+                    )
+                else:
+                    clause_locations = _build_clause_locations(analysis_md, locations_data)
+                    cl_path = f"workspaces/{document.workspace_id}/documents/{document_id}/clause_locations.json"
+                    await gcs.write_text(
+                        cl_path,
+                        json.dumps(clause_locations),
+                        content_type="application/json",
+                        region=region,
+                    )
+                    logger.info(
+                        f"clause_locations written for {document_id}: {len(clause_locations)} clause types"
+                    )
+            except Exception as e:
+                logger.exception(f"clause_locations build failed (non-fatal) for {document_id}: {e}")
+
+            # Step 8: Mark READY
             document.status = DocumentStatus.READY
             await db.commit()
 

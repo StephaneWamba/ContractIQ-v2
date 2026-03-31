@@ -64,6 +64,53 @@ body::before {
   background-size: 24px 24px;
 }
 
+/* Markdown rendered inside analysis panel */
+.prose-analysis h1, .prose-analysis h2, .prose-analysis h3 {
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 12px 0 6px;
+  line-height: 1.4;
+}
+.prose-analysis h1 { font-size: 15px; }
+.prose-analysis h2 { font-size: 14px; }
+.prose-analysis h3 { font-size: 13px; }
+.prose-analysis p { margin: 0 0 8px; }
+.prose-analysis ul, .prose-analysis ol { padding-left: 18px; margin: 0 0 8px; }
+.prose-analysis li { margin-bottom: 4px; }
+.prose-analysis strong { color: var(--text-primary); font-weight: 600; }
+.prose-analysis code {
+  background: rgba(255,255,255,0.07);
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-size: 12px;
+  font-family: monospace;
+}
+
+/* GFM tables */
+.prose-analysis table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin: 10px 0 14px;
+}
+.prose-analysis th {
+  background: rgba(200,169,110,0.12);
+  color: var(--text-primary);
+  font-weight: 600;
+  text-align: left;
+  padding: 6px 10px;
+  border: 1px solid var(--border-subtle);
+}
+.prose-analysis td {
+  padding: 5px 10px;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  vertical-align: top;
+}
+.prose-analysis tr:nth-child(even) td {
+  background: rgba(255,255,255,0.02);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

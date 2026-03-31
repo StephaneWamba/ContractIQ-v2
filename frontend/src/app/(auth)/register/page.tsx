@@ -76,7 +76,7 @@ export default function RegisterPage() {
     try {
       const token = await registerUser(email, password, name)
       setToken(token)
-      router.push("/app/dashboard?onboarding=true")
+      router.push("/dashboard?onboarding=true")
     } catch (err) {
       const message = err instanceof Error ? err.message : "Registration failed"
       if (message.toLowerCase().includes("already") || message.toLowerCase().includes("email")) {

@@ -24,7 +24,7 @@ export function useDocuments(workspaceId: string | null) {
     if (!token) return
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/workspaces/${workspaceId}/documents`,
+        `${process.env.NEXT_PUBLIC_API_URL}/documents?workspace_id=${workspaceId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       )
       if (!res.ok) throw new Error("Failed to fetch documents")
