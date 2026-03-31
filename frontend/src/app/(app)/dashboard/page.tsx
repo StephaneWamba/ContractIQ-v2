@@ -19,9 +19,9 @@ function relativeTime(iso: string): string {
 }
 
 const quickActions = [
-  { icon: <Upload size={18} />, label: "Upload contract", href: "/app/documents/upload" },
-  { icon: <MagnifyingGlass size={18} />, label: "Search portfolio", href: "/app/search" },
-  { icon: <BookOpen size={18} />, label: "Edit playbook", href: "/app/playbooks" },
+  { icon: <Upload size={18} />, label: "Upload contract", href: "/documents/upload" },
+  { icon: <MagnifyingGlass size={18} />, label: "Search portfolio", href: "/search" },
+  { icon: <BookOpen size={18} />, label: "Edit playbook", href: "/playbooks" },
 ]
 
 export default function DashboardPage() {
@@ -39,6 +39,7 @@ export default function DashboardPage() {
 
         {/* Skeleton cards */}
         <div
+          className="dashboard-recent-grid"
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(4, 1fr)",
@@ -85,6 +86,17 @@ export default function DashboardPage() {
 
   return (
     <div>
+      <style>{`
+        @media (max-width: 768px) {
+          .dashboard-recent-grid { grid-template-columns: 1fr 1fr !important; }
+          .dashboard-bottom-row { flex-direction: column !important; }
+          .dashboard-activity { flex: unset !important; width: 100% !important; }
+          .dashboard-quick-actions { flex: unset !important; width: 100% !important; }
+        }
+        @media (max-width: 480px) {
+          .dashboard-recent-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
       <PageHeader
         title="Dashboard"
         subtitle={me?.name ? `Welcome back, ${me.name}` : undefined}
@@ -105,6 +117,7 @@ export default function DashboardPage() {
           Recent
         </h2>
         <div
+          className="dashboard-recent-grid"
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(4, 1fr)",
@@ -118,9 +131,9 @@ export default function DashboardPage() {
       </section>
 
       {/* Activity + Quick Actions row */}
-      <div style={{ display: "flex", gap: "24px", alignItems: "flex-start" }}>
+      <div className="dashboard-bottom-row" style={{ display: "flex", gap: "24px", alignItems: "flex-start" }}>
         {/* Activity feed — 60% */}
-        <div style={{ flex: "0 0 60%" }}>
+        <div className="dashboard-activity" style={{ flex: "0 0 60%" }}>
           <h2
             style={{
               fontSize: "13px",
@@ -144,7 +157,7 @@ export default function DashboardPage() {
             {activityDocs.map((doc, idx) => (
               <Link
                 key={doc.id}
-                href={`/app/documents/${doc.id}`}
+                href={`/documents/${doc.id}`}
                 style={{ textDecoration: "none" }}
               >
                 <div
@@ -202,7 +215,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Quick Actions — 40% */}
-        <div style={{ flex: "0 0 40%" }}>
+        <div className="dashboard-quick-actions" style={{ flex: "0 0 40%" }}>
           <h2
             style={{
               fontSize: "13px",

@@ -8,6 +8,8 @@ import { AnalysisPanel } from "@/components/viewer/analysis-panel"
 import { useWorkspace } from "@/hooks/use-workspace"
 import { useDocumentDetail } from "@/hooks/use-document-detail"
 
+type MobileTab = "clauses" | "pdf" | "analysis"
+
 export default function DocumentViewerPage() {
   const params = useParams()
   const documentId = params.id as string
@@ -15,7 +17,7 @@ export default function DocumentViewerPage() {
   const { workspace } = useWorkspace()
   const workspaceId = workspace?.id ?? null
 
-  const { document, clauses, analysis, pdfUrl, loading } = useDocumentDetail(
+  const { document, clauses, analysis, pdfUrl, clauseLocations, loading } = useDocumentDetail(
     workspaceId,
     documentId
   )
@@ -29,6 +31,15 @@ export default function DocumentViewerPage() {
     return localStorage.getItem("viewer_right_collapsed") === "true"
   })
   const [selectedClauseId, setSelectedClauseId] = useState<string | null>(null)
+  const [mobileTab, setMobileTab] = useState<MobileTab>("clauses")
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth <= 768)
+    check()
+    window.addEventListener("resize", check)
+    return () => window.removeEventListener("resize", check)
+  }, [])
 
   useEffect(() => {
     localStorage.setItem("viewer_left_collapsed", String(leftCollapsed))
@@ -43,6 +54,103 @@ export default function DocumentViewerPage() {
   const isProcessing =
     document?.status === "processing" || document?.status === "pending"
 
+  const processingBanner = isProcessing && (
+    <div
+      style={{
+        background: "rgba(200,169,110,0.08)",
+        borderBottom: "1px solid rgba(200,169,110,0.2)",
+        padding: "10px 16px",
+        display: "flex",
+        alignItems: "center",
+        gap: "8px",
+        flexShrink: 0,
+      }}
+    >
+      <Spinner size="sm" />
+      <span style={{ fontSize: "13px", color: "var(--accent-gold)" }}>
+        Analyzing this contract — clauses will appear in 30–60 seconds
+      </span>
+    </div>
+  )
+
+  if (isMobile) {
+    const tabs: { key: MobileTab; label: string }[] = [
+      { key: "clauses", label: "Clauses" },
+      { key: "pdf", label: "PDF" },
+      { key: "analysis", label: "Analysis" },
+    ]
+    return (
+      <div style={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
+        {processingBanner}
+
+        {/* Mobile tab bar */}
+        <div
+          style={{
+            display: "flex",
+            borderBottom: "1px solid var(--border-subtle)",
+            background: "var(--surface-elevated)",
+            flexShrink: 0,
+          }}
+        >
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setMobileTab(tab.key)}
+              style={{
+                flex: 1,
+                padding: "10px 0",
+                background: "transparent",
+                border: "none",
+                borderBottom: mobileTab === tab.key
+                  ? "2px solid var(--accent-gold)"
+                  : "2px solid transparent",
+                cursor: "pointer",
+                fontSize: "13px",
+                color: mobileTab === tab.key ? "var(--accent-gold)" : "var(--text-muted)",
+                fontWeight: mobileTab === tab.key ? 500 : 400,
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab content */}
+        <div style={{ flex: 1, overflow: "hidden" }}>
+          {mobileTab === "clauses" && (
+            <ClauseSidebar
+              clauses={clauses}
+              loading={loading}
+              selectedId={selectedClauseId}
+              onSelect={(id) => { setSelectedClauseId(id); setMobileTab("pdf") }}
+            />
+          )}
+          {mobileTab === "pdf" && (
+            loading && !document ? (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "var(--text-muted)" }}>
+                <Spinner />
+              </div>
+            ) : (
+              <PdfViewer pdfUrl={pdfUrl} selectedClause={selectedClause} clauseLocations={clauseLocations} />
+            )
+          )}
+          {mobileTab === "analysis" && (
+            <AnalysisPanel
+              clauses={clauses}
+              analysis={analysis}
+              loading={loading}
+              documentId={documentId}
+              workspaceId={workspaceId}
+              selectedClauseId={selectedClauseId}
+              onSelectClause={setSelectedClauseId}
+              documentStatus={document?.status}
+            />
+          )}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div
       style={{
@@ -53,25 +161,7 @@ export default function DocumentViewerPage() {
         background: "var(--surface-base)",
       }}
     >
-      {/* Processing Banner */}
-      {isProcessing && (
-        <div
-          style={{
-            background: "rgba(200,169,110,0.08)",
-            borderBottom: "1px solid rgba(200,169,110,0.2)",
-            padding: "10px 16px",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            flexShrink: 0,
-          }}
-        >
-          <Spinner size="sm" />
-          <span style={{ fontSize: "13px", color: "var(--accent-gold)" }}>
-            Analyzing this contract — clauses will appear in 30–60 seconds
-          </span>
-        </div>
-      )}
+      {processingBanner}
 
       {/* Three-panel layout */}
       <div style={{ display: "flex", flex: 1, overflow: "hidden", position: "relative" }}>
@@ -86,7 +176,7 @@ export default function DocumentViewerPage() {
         )}
 
         {/* Center: PDF Viewer */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
+        <div style={{ flex: "0 0 560px", display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
           {/* Edge tab: show clauses */}
           {leftCollapsed && (
             <button
@@ -185,7 +275,7 @@ export default function DocumentViewerPage() {
               <Spinner />
             </div>
           ) : (
-            <PdfViewer pdfUrl={pdfUrl} selectedClause={selectedClause} />
+            <PdfViewer pdfUrl={pdfUrl} selectedClause={selectedClause} clauseLocations={clauseLocations} />
           )}
 
           {/* Edge tab: show analysis */}

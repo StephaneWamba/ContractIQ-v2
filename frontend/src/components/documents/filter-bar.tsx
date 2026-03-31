@@ -45,7 +45,8 @@ export function FilterBar({
         onChange={(e) => onSearch(e.target.value)}
         placeholder="Search documents..."
         style={{
-          width: "280px",
+          width: "min(280px, 100%)",
+          minWidth: "160px",
           height: "34px",
           paddingInline: "12px",
           borderRadius: "6px",
@@ -54,7 +55,6 @@ export function FilterBar({
           color: "var(--text-primary)",
           fontSize: "13px",
           outline: "none",
-          flexShrink: 0,
         }}
       />
 

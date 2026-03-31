@@ -38,9 +38,9 @@ interface NavItem {
 }
 
 const mainNav: NavItem[] = [
-  { label: "Dashboard", href: "/app/dashboard", icon: GridFour },
-  { label: "Documents", href: "/app/documents", icon: Files },
-  { label: "Search", href: "/app/search", icon: MagnifyingGlass },
+  { label: "Dashboard", href: "/dashboard", icon: GridFour },
+  { label: "Documents", href: "/documents", icon: Files },
+  { label: "Search", href: "/search", icon: MagnifyingGlass },
 ]
 
 const PLAYBOOK_TYPES = [
@@ -126,7 +126,7 @@ function PlaybookLink({
   collapsed: boolean
   active: boolean
 }) {
-  const href = `/app/playbooks/${slug}`
+  const href = `/playbooks/${slug}`
 
   const inner = (
     <Link
@@ -180,8 +180,14 @@ function PlaybookLink({
   return inner
 }
 
-export function Sidebar() {
+interface SidebarProps {
+  mobileOpen?: boolean
+  onMobileClose?: () => void
+}
+
+export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
   const [playbookSectionHovered, setPlaybookSectionHovered] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
@@ -192,6 +198,13 @@ export function Sidebar() {
     if (stored !== null) {
       setCollapsed(stored === "true")
     }
+  }, [])
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth <= 768)
+    check()
+    window.addEventListener("resize", check)
+    return () => window.removeEventListener("resize", check)
   }, [])
 
   function toggleCollapsed() {
@@ -205,12 +218,45 @@ export function Sidebar() {
     router.push("/login")
   }
 
+  // Close mobile sidebar on navigation
+  useEffect(() => {
+    if (isMobile && mobileOpen) {
+      onMobileClose?.()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname])
+
+  const mobileStyle: React.CSSProperties = isMobile
+    ? {
+        position: "fixed",
+        top: 0,
+        left: 0,
+        zIndex: 200,
+        transform: mobileOpen ? "translateX(0)" : "translateX(-100%)",
+        transition: "transform 250ms cubic-bezier(0.4, 0, 0.2, 1)",
+        width: "260px",
+        boxShadow: "4px 0 24px rgba(0,0,0,0.4)",
+      }
+    : {}
+
   return (
     <TooltipProvider delayDuration={300}>
+      {/* Mobile backdrop */}
+      {isMobile && mobileOpen && (
+        <div
+          onClick={onMobileClose}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 199,
+            background: "rgba(0,0,0,0.5)",
+          }}
+        />
+      )}
       <aside
         style={{
           width: collapsed ? "52px" : "260px",
-          transition: "width 200ms cubic-bezier(0.4, 0, 0.2, 1)",
+          transition: isMobile ? undefined : "width 200ms cubic-bezier(0.4, 0, 0.2, 1)",
           height: "100vh",
           position: "sticky",
           top: 0,
@@ -220,6 +266,7 @@ export function Sidebar() {
           borderRight: "1px solid var(--border-subtle)",
           flexShrink: 0,
           overflow: "hidden",
+          ...mobileStyle,
         }}
       >
         {/* Header */}
@@ -234,7 +281,7 @@ export function Sidebar() {
           }}
         >
           {!collapsed && (
-            <Link href="/app/dashboard" style={{ textDecoration: "none" }}>
+            <Link href="/dashboard" style={{ textDecoration: "none" }}>
               <span
                 style={{
                   fontFamily: "var(--font-serif)",
@@ -331,7 +378,7 @@ export function Sidebar() {
               </span>
               {playbookSectionHovered && (
                 <Link
-                  href="/app/documents/upload"
+                  href="/documents/upload"
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -349,7 +396,7 @@ export function Sidebar() {
             </div>
           )}
           {PLAYBOOK_TYPES.map(({ slug, label }) => {
-            const href = `/app/playbooks/${slug}`
+            const href = `/playbooks/${slug}`
             const active = pathname === href || pathname.startsWith(href + "/")
             return (
               <PlaybookLink
@@ -371,7 +418,7 @@ export function Sidebar() {
           {(() => {
             const settingsItem: NavItem = {
               label: "Settings",
-              href: "/app/settings",
+              href: "/settings",
               icon: Gear,
             }
             const active =
@@ -427,7 +474,7 @@ export function Sidebar() {
                 borderRadius: "8px",
               }}
             >
-              <DropdownMenuItem onClick={() => router.push("/app/settings")}>
+              <DropdownMenuItem onClick={() => router.push("/settings")}>
                 Account settings
               </DropdownMenuItem>
               <DropdownMenuSeparator />

@@ -4,10 +4,20 @@ import { Sidebar } from "@/components/layout/sidebar"
 import { DropOverlay } from "@/components/upload/drop-overlay"
 import { AnimatePresence } from "framer-motion"
 import { Toaster } from "sonner"
+import { List } from "@phosphor-icons/react"
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [isDragging, setIsDragging] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
   const dragCounterRef = useRef(0)
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth <= 768)
+    check()
+    window.addEventListener("resize", check)
+    return () => window.removeEventListener("resize", check)
+  }, [])
 
   useEffect(() => {
     const onDragEnter = (e: DragEvent) => {
@@ -37,15 +47,56 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
-      <Sidebar />
+      {!isMobile && <Sidebar />}
+      {isMobile && (
+        <Sidebar
+          mobileOpen={mobileMenuOpen}
+          onMobileClose={() => setMobileMenuOpen(false)}
+        />
+      )}
       <main
         style={{
           flex: 1,
           overflow: "auto",
-          padding: "40px 48px",
+          padding: isMobile ? "16px" : "40px 48px",
           minWidth: 0,
         }}
       >
+        {isMobile && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+              marginBottom: "16px",
+            }}
+          >
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: "var(--text-muted)",
+                padding: "4px",
+                display: "flex",
+                alignItems: "center",
+              }}
+              aria-label="Open menu"
+            >
+              <List size={20} />
+            </button>
+            <span
+              style={{
+                fontFamily: "var(--font-serif)",
+                fontSize: "16px",
+                color: "var(--accent-gold)",
+              }}
+            >
+              ContractIQ
+            </span>
+          </div>
+        )}
         {children}
       </main>
       <AnimatePresence>
