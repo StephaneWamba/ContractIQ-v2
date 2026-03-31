@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     gcs_kms_key_eu: str = ""       # KMS key resource name for EU bucket CMEK (optional)
 
     # CORS — stored as raw string, parsed at access time to avoid pydantic-settings JSON auto-decode
-    allowed_origins_raw: str = "http://localhost:3000"
+    allowed_origins_raw: str = "http://localhost:3000,https://contractiq.app,https://contractiq-v2.vercel.app,https://contractiq.stephanewamba.com"
 
     @property
     def allowed_origins(self) -> list[str]:
