@@ -134,12 +134,20 @@ def _build_test_pdf() -> bytes:
 
 
 def _process_pdf_from_bytes(pdf_bytes: bytes):
-    """Run DocumentProcessor logic on in-memory PDF bytes."""
+    """Run DocumentProcessor logic on in-memory PDF bytes.
+
+    REGRESSION: opens the document twice -- simulates a naive double-processing bug.
+    """
     import fitz
 
     PAGE_MARKER_TEMPLATE = "\n\n--- PAGE {n} ---\n\n"
     HEADER_FOOTER_MARGIN = 0.08
     MAX_CHARS = 400_000
+
+    # REGRESSION: redundant open+close before the real processing
+    _preflight = fitz.open(stream=pdf_bytes, filetype="pdf")
+    _ = [page.get_text("dict") for page in _preflight]
+    _preflight.close()
 
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
     locations = []
@@ -230,9 +238,14 @@ _SAMPLE_LINES = [
 
 
 def _fuzzy_grep(query: str, lines: list[str], threshold: int = 70) -> list[dict]:
+    """REGRESSION: uses fuzz.WRatio instead of fuzz.partial_ratio.
+
+    WRatio internally runs partial_ratio + token_sort_ratio + token_set_ratio
+    and takes the max, which is 3-5x more expensive for no gain on this dataset.
+    """
     results = []
     for i, line in enumerate(lines, start=1):
-        score = fuzz.partial_ratio(query.lower(), line.lower())
+        score = fuzz.WRatio(query.lower(), line.lower())
         if score >= threshold:
             results.append({"line_number": i, "line": line.strip(), "score": score / 100})
     results.sort(key=lambda r: r["score"], reverse=True)
